@@ -1,0 +1,110 @@
+<html>
+  <head>
+    <title>Dayperiod</title>
+    <style type="text/css">
+      body { 
+        text-align: center;
+        font-size: 32px;
+      }
+      @media(min-width:1000px) { body{font-size: 24px}}
+      div#outer {
+        display: inline-block;
+      }
+      div#dp {
+        margin-top: 200px;
+	font-weight: bold;
+	font-size: 250%;
+	font-family: Arial, sans-serif;
+	color: black;
+      }
+      div#notes {
+        margin-top: 40px;
+	font-weight: normal;
+	font-size: 100%;
+	font-family: Arial, sans-serif;
+	color: black;
+      }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha256-/SIrNqv8h6QGKDuNoLGA4iret+kyesCkHGzVUUV0shc=" crossorigin="anonymous"></script>
+    <script src="https://dayperiod.com/hammer.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.js"></script>
+
+  <script type="text/javascript">
+    function epoch() {
+      return moment('1970010110Z', 'YYYYMMDDHHZ').utc();
+    }
+
+    function dayperiodFromUrl(searchParams) {
+
+      var dpInt = parseInt(searchParams.get('dayperiod'));
+
+      if($.isNumeric(dpInt)) {
+        return dpInt;
+      }
+
+      var dateMatch = /^(\d\d\d\d)-(\d\d)-(\d\d)$/.exec(searchParams.get('date'));
+
+      if (dateMatch) {
+        var paramDate = moment(`${dateMatch[1]}${dateMatch[2]}${dateMatch[3]}10Z`, 'YYYYMMDDHHZ').utc()
+
+        if(paramDate.isValid()) {
+          return paramDate.utc().diff(epoch(), 'days');
+        }
+      }
+
+      // default to current date
+      return moment().utc().diff(epoch(), 'days');
+    }
+
+    var currentUrl = new URL(window.location.href);
+
+    var dayperiod = dayperiodFromUrl(currentUrl.searchParams);
+
+    function updateDayperiod() {
+      currentUrl.searchParams.delete('date')
+      currentUrl.searchParams.set('dayperiod', dayperiod)
+
+      if(currentUrl.toString() !== window.location.href) {
+        history.pushState(null, '', currentUrl.toString())
+      }
+
+      document.getElementById('dp').innerHTML = 'Dayperiod ' + dayperiod + '<br />is<br />' + 
+        epoch().add(dayperiod, 'days').format('dddd,[<br />]MMMM DD, YYYY')
+    }
+
+    function nextDay() { ++dayperiod; updateDayperiod(); }
+    function prevDay() { --dayperiod; updateDayperiod(); }
+
+    $( document ).ready ( function() {
+      $( window ).keydown( function(event) {
+	var key = event.which
+
+        if(key == 37) {
+          prevDay();
+        } else if(key == 39) {
+          nextDay();
+        }
+      });
+
+      updateDayperiod();
+
+      var hammertime = new Hammer(window)
+      hammertime.on("swipeleft", function() { nextDay(); } );
+      hammertime.on("swiperight", function() { prevDay(); } ); 
+    });
+  </script>
+  </head>
+  <body>
+  <div id="outer">
+    <div id="dp"></div>
+    <div id="notes">Use the left/right arrow keys to change the date</div>
+    <div id="notes">
+      <a href="javascript:(function(){var date = prompt('Enter dayperiod or date (YYYY-MM-DD):'); if(date) { var param = /^\d+$/.test(date) ? 'dayperiod' : 'date'; var url = new URL('file:///Users/cary.maister/dayperiod.com/dayperiod.com/index.html'); url.searchParams.set(param, date); window.location.href = url.toString();}})();">Jump to Dayperiod</a>
+      <br/>
+      (tip: Drag "Jump to Dayperiod" to your bookmarks bar, then click it to jump straight to the day you need)
+</div>
+  </div>
+
+  </body>
+</html>
+
